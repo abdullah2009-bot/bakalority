@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قسم ملخصات العلوم - تحميل وعرض</title>
+    <!-- تضمين Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- تضمين Font Awesome CDN للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- إعدادات Tailwind CSS مخصصة -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        coral: '#FF6B6B',
+                        'coral-light': '#FF8E8E'
+                    },
+                    fontFamily: {
+                        'arabic': ['Tahoma', 'Arial', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- الأنماط المخصصة -->
+    <style>
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        .summary-card {
+            display: block;
+            background-color: #ffffff; /* bg-white */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            padding: 1rem; /* p-4 */
+            margin-bottom: 1rem; /* mb-4 */
+            transform: scale(1);
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer; /* للإشارة إلى أنه قابل للنقر */
+        }
+        .summary-card:hover {
+            transform: scale(1.02); /* تأثير التكبير عند التحويم */
+        }
+        .dark .summary-card {
+            background-color: #1f2937; /* dark:bg-gray-800 */
+        }
+        .dark .summary-card h3 {
+            color: #ffffff; /* dark:text-white */
+        }
+        .dark .summary-card p {
+            color: #9ca3af; /* dark:text-gray-400 */
+        }
+        .icon-container {
+            flex-shrink: 0;
+            background-color: rgba(93, 92, 222, 0.2); /* primary color with opacity */
+            border-radius: 0.5rem; /* rounded-lg */
+            width: 4rem; /* w-16 */
+            height: 4rem; /* h-16 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-container i {
+            color: #5D5CDE; /* primary color */
+            font-size: 2rem; /* text-3xl */
+        }
+        /* لتثبيت رأس القسم */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 20; /* لضمان ظهوره فوق المحتوى الآخر عند التمرير */
+        }
+        /* تعديل بسيط لحقل البحث ليكون متناسقاً */
+        #summarySearchInput {
+            border: none;
+            outline: none;
+            color: #374151; /* text-gray-800 */
+        }
+        .dark #summarySearchInput {
+            background-color: rgba(255, 255, 255, 0.1); /* شفافية خفيفة في الوضع الداكن */
+            color: #d1d5db; /* text-gray-300 */
+        }
+        /* نمط زر التحميل */
+        .download-button {
+            background-color: rgba(93, 92, 222, 0.1); /* لون خفيف من Primary */
+            color: #5D5CDE; /* لون Primary */
+            border-radius: 50%; /* دائري */
+            width: 2.5rem; /* حجم صغير */
+            height: 2.5rem; /* حجم صغير */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0; /* لمنع الانكماش */
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            border: none; /* إزالة حدود الزر الافتراضية */
+        }
+        .download-button:hover {
+            background-color: rgba(93, 92, 222, 0.3); /* تظليل عند التحويم */
+        }
+        .download-button i {
+            font-size: 1.25rem; /* حجم الأيقونة */
+        }
+
+        /* أنماط النافذة المنبثقة (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none; /* مخفي افتراضياً */
+            align-items: center;
+            justify-content: center;
+            z-index: 9999; /* أعلى من أي عناصر أخرى */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            display: flex; /* يظهر كـ flex */
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            position: relative;
+            width: 95%; /* حجم كبير */
+            height: 95%; /* حجم كبير */
+            max-width: 1200px; /* أقصى عرض للشاشات الكبيرة */
+            max-height: 900px; /* أقصى ارتفاع للشاشات الكبيرة */
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            overflow: hidden; /* لإخفاء أي محتوى يتجاوز الحدود */
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #5D5CDE; /* لون أساسي لرأس النافذة */
+            color: white;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .modal-close-button {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            margin: 0;
+        }
+        .modal-iframe-container {
+            flex-grow: 1; /* لجعل الحاوية تأخذ المساحة المتبقية */
+            width: 100%;
+            height: 100%;
+            position: relative; /* لتحديد موضع رسالة التحميل */
+        }
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* أنماط رسالة التحميل */
+        .loading-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9); /* خلفية بيضاء شبه شفافة */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #333;
+            z-index: 10; /* فوق الـ iframe */
+            transition: opacity 0.3s ease;
+        }
+        .loading-message.hidden {
+            opacity: 0;
+            pointer-events: none; /* لمنع التفاعل عندما تكون مخفية */
+        }
+        .loading-message i {
+            font-size: 3rem;
+            color: #5D5CDE;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite; /* حركة دوران */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="font-arabic">
+
+    <!-- قسم ملخصات العلوم -->
+    <section class="mb-8 p-4">
+        <!-- رأس القسم - أصبح ثابتاً (sticky) -->
+        <div class="bg-coral text-white py-4 rounded-t-lg sticky-header" id="math-summaries-header">
+            <div class="flex items-center justify-between px-4">
+                <h2 class="text-xl font-bold">ملخصات العلوم</h2>
+                <!-- حقل البحث -->
+                <input type="text" id="summarySearchInput" placeholder="ابحث عن ملخص..." 
+                       class="p-2 rounded-md text-sm text-gray-800 bg-white bg-opacity-90 w-1/2 md:w-1/3 lg:w-1/4">
+            </div>
+        </div>
+        
+        <!-- محتوى القسم: قائمة الملخصات العمودية -->
+        <div class="bg-white dark:bg-gray-800 rounded-b-lg shadow-lg p-4" id="summariesList">
+            <!-- الملخص الأول: الامتحان الشامل ائتلاف 2025 -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/1234567890abcdef1234567890abcdef/preview">
+                <div class="flex items-center justify-between w-full">
+                    <!-- المحتوى الرئيسي (أيقونة PDF + نص) على اليسار -->
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">الامتحان الشامل ائتلاف 2025</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">1.6 م.ب • صفحتان</p>
+                        </div>
+                    </div>
+                    <!-- زر التحميل على اليمين -->
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=1234567890abcdef1234567890abcdef">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص الثاني: ملخص الجبر - الوحدة الأولى -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/abcdef1234567890abcdef1234567890/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">ملخص الجبر - الوحدة الأولى</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">2.1 م.ب • 5 صفحات</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=abcdef1234567890abcdef1234567890">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص الثالث: قوانين التفاضل والتكامل -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/0987654321fedcba0987654321fedcba/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">قوانين التفاضل والتكامل</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">0.8 م.ب • 3 صفحات</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=0987654321fedcba0987654321fedcba">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص الرابع: مراجعة شاملة للوحدة الثالثة -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">مراجعة شاملة للوحدة الثالثة</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">3.5 م.ب • 10 صفحات</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص الخامس: تمارين محلولة في الاحتمالات -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">تمارين محلولة في الاحتمالات</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">1.2 م.ب • 4 صفحات</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص السادس: ملخص مفاهيم الدوال اللوغاريتمية -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/z9x8c7v6b5n4m3l2k1j0h9g8f7d6s5a4/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">ملخص مفاهيم الدوال اللوغاريتمية</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">0.9 م.ب • 2 صفحة</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=z9x8c7v6b5n4m3l2k1j0h9g8f7d6s5a4">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- الملخص الجديد: أسئلة دورات الفيزياء بحسب كل وحدة منذ عام 1990 -->
+            <div class="summary-card" data-view-url="https://drive.google.com/file/d/1BPmbqmt89HwYmjtNAG5oA8j-myKCRNUK/preview">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4 flex-grow justify-start">
+                        <div class="icon-container">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-1">أسئلة دورات الفيزياء بحسب كل وحدة منذ عام 1990</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">حجم كبير • عدة صفحات</p>
+                        </div>
+                    </div>
+                    <button class="download-button" data-download-url="https://docs.google.com/uc?export=download&id=1BPmbqmt89HwYmjtNAG5oA8j-myKCRNUK">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- هيكل النافذة المنبثقة لعرض ملفات PDF -->
+    <div id="pdfModal" class="modal-overlay"> 
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">عرض الملف</h3>
+                <button class="modal-close-button" id="closeModalButton">&times;</button>
+            </div>
+            <div class="modal-iframe-container">
+                <!-- رسالة التحميل -->
+                <div id="loadingMessage" class="loading-message hidden">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>جاري تحميل الملف... انتظر لحظة</span>
+                </div>
+                <iframe id="pdfViewerIframe" class="modal-iframe" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // دعم الوضع الداكن (Dark Mode)
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // وظيفة البحث
+        const summarySearchInput = document.getElementById('summarySearchInput');
+        const summariesList = document.getElementById('summariesList');
+        const summaryCards = summariesList.querySelectorAll('.summary-card');
+
+        summarySearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            
+            summaryCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const details = card.querySelector('p').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || details.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // عناصر النافذة المنبثقة
+        const pdfModal = document.getElementById('pdfModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const pdfViewerIframe = document.getElementById('pdfViewerIframe');
+        const modalTitle = document.getElementById('modalTitle');
+        const loadingMessage = document.getElementById('loadingMessage'); // عنصر رسالة التحميل
+
+        // دالة لفتح النافذة المنبثقة
+        function openPdfModal(viewUrl, title) {
+            modalTitle.textContent = title;
+            loadingMessage.classList.remove('hidden'); // إظهار رسالة التحميل
+            pdfViewerIframe.style.opacity = '0'; // إخفاء الـ iframe مؤقتًا أثناء التحميل
+            pdfViewerIframe.src = viewUrl;
+            
+            pdfModal.style.display = 'flex'; 
+            setTimeout(() => {
+                pdfModal.classList.add('active'); 
+            }, 10); 
+        }
+
+        // دالة لإغلاق النافذة المنبثقة
+        function closePdfModal() {
+            pdfModal.classList.remove('active');
+            setTimeout(() => {
+                pdfViewerIframe.src = ''; 
+                pdfModal.style.display = 'none'; 
+                loadingMessage.classList.add('hidden'); // تأكد من إخفاء رسالة التحميل عند الإغلاق
+                pdfViewerIframe.style.opacity = '1'; // إعادة الـ iframe لحالته الطبيعية
+            }, 300); 
+        }
+
+        // معالج حدث لإغلاق النافذة المنبثقة
+        closeModalButton.addEventListener('click', closePdfModal);
+        pdfModal.addEventListener('click', function(event) {
+            if (event.target === pdfModal) {
+                closePdfModal();
+            }
+        });
+
+        // معالج حدث عند اكتمال تحميل الـ iframe
+        pdfViewerIframe.addEventListener('load', function() {
+            loadingMessage.classList.add('hidden'); // إخفاء رسالة التحميل
+            pdfViewerIframe.style.opacity = '1'; // إظهار الـ iframe
+        });
+
+        // التعامل مع النقرات على بطاقات الملخص لفتح عارض PDF
+        summaryCards.forEach(card => {
+            card.addEventListener('click', function(event) {
+                if (event.target.closest('.download-button')) {
+                    return; 
+                }
+                
+                const viewUrl = this.dataset.viewUrl;
+                const title = this.querySelector('h3').textContent;
+                if (viewUrl) {
+                    openPdfModal(viewUrl, title);
+                }
+            });
+        });
+
+        // المنطق الحالي لأزرار التحميل (للتأكد من أنها لا تزال تعمل)
+        const downloadButtons = document.querySelectorAll('.download-button');
+
+        downloadButtons.forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.stopPropagation(); 
+                const downloadUrl = this.dataset.downloadUrl;
+                if (downloadUrl) {
+                    window.open(downloadUrl, '_blank');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
